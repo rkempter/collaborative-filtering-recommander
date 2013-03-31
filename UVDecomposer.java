@@ -142,22 +142,11 @@ public class UVDecomposer {
 		FSDataOutputStream out = fs.create(path);
 		
 		// generate matrix
-		for(int i = 1; i <= index1; i++) {
-			for(int j = 1; j <= index2; j++) {
-				float value = (float) generator.nextGaussian();
-				String output;
-				if(type == "U") {
-					output = String.format("<%s, %d, %d, %f>\n", type, i, j, value);
-				} else {
-					output = String.format("<%s, %d, %d, %f>\n", type, j, i, value);
-				}
-				out.writeChars(output);
-			}
-		}
 		
 		for(int k = 0; k < (index1 / BLOCK_SIZE); k++) {
 			for(int i = 0; i < D_DIMENSION; i++) {
 				for(int j = k * BLOCK_SIZE+1; j <= (k+1) * BLOCK_SIZE; j++) {
+					float value = (float) generator.nextGaussian();
 					String output;
 					if(type == "U") {
 						output = String.format("<%s, %d, %d, %f>\n", type, j, i, value);
