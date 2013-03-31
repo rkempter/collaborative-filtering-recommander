@@ -1,7 +1,10 @@
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Iterator;
+import java.util.Random;
 
+import org.apache.hadoop.fs.FSDataOutputStream;
+import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.IntWritable;
 import org.apache.hadoop.mapred.FileInputFormat;
@@ -13,8 +16,15 @@ import org.apache.hadoop.mapred.Mapper;
 import org.apache.hadoop.mapred.OutputCollector;
 import org.apache.hadoop.mapred.Reducer;
 import org.apache.hadoop.mapred.Reporter;
+import org.apache.hadoop.mapred.TextOutputFormat;
+import org.apache.hadoop.mapreduce.lib.map.WrappedMapper.Context;
+import org.apache.hadoop.mapred.lib.MultipleOutputs;
 
 public class UVDecomposer {
+	
+	private static final int NBR_MOVIES = 100;
+	private static final int NBR_USERS = 5000;
+	private static final int D_DIMENSION = 10;
 	
 	public static class InitializationMapper extends MapReduceBase implements Mapper<IntWritable, TupleValue, IntWritable, TupleValue>
 	{
@@ -27,6 +37,15 @@ public class UVDecomposer {
 	
 	public static class InitializationReducer extends MapReduceBase implements Reducer<IntWritable, TupleValue, IntWritable, TupleValue>
 	{
+		
+//		private MultipleOutputs mos;
+//		
+//		public void setup(JobConf conf) {
+//			
+//			mos = new MultipleOutputs(conf);
+//			
+//		}
+		
 		public void reduce(IntWritable key, Iterator<TupleValue> values,
 				OutputCollector<IntWritable, TupleValue> output, Reporter reporter)
 				throws IOException {
@@ -37,6 +56,7 @@ public class UVDecomposer {
 				
 				// Compute the average of the user rating
 				while (values.hasNext()) {
+					// Hate this!
 					TupleValue tv = values.next();
 					TupleValue tupleValue = new TupleValue(tv.getIndex(), tv.getGrade());
 					tupleValueList.add(tupleValue);
@@ -49,13 +69,17 @@ public class UVDecomposer {
 				// Write adjusted matrix row out
 				for(int i = 0; i < tupleValueList.size(); i++) {
 					TupleValue value = tupleValueList.get(i);
-					System.out.println(key + " " + value.getIndex() + " " + value.getGrade());
 					float grade = value.getGrade() - avg;
 					value.setGrade(grade);
 					output.collect(key, value);
 				}
 				
+				// Need to write U and V
 		}
+		
+//		protected void cleanup(Context context) throws IOException, InterruptedException {
+//	          mos.close();
+//	    }
 	}
 	
 
@@ -68,6 +92,9 @@ public class UVDecomposer {
 		
 		conf.setOutputKeyClass(IntWritable.class);
 		conf.setOutputValueClass(TupleValue.class);
+		
+		// Specify output for normalized matrix
+		//MultipleOutputs.addNamedOutput(conf, "norm-matrix", TextOutputFormat.class, IntWritable.class, TupleValue.class);
 		
 		String inputPath = "/std44/input/";
 		String outputPath = "/std44/output/";
@@ -85,5 +112,44 @@ public class UVDecomposer {
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
+		
+		// Create U, V matrices
+		Path uPath = new Path("/std44/output/U_i/umatrix.txt");
+		Path vPath = new Path("/std44/output/V_i/vmatrix.txt");
+		
+		try {
+			// Create U matrix
+			createMatrix(conf, uPath, NBR_USERS, D_DIMENSION, "U");
+			// Create V matrix - @Todo: Eventually need to write custom method to store column wise!!
+			createMatrix(conf, vPath, D_DIMENSION, NBR_MOVIES, "V");
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+	}
+	
+	
+	private static void createMatrix(JobConf conf, Path path, int height, int width, String type) throws IOException {
+		Random generator = new Random();
+		
+		FileSystem fs = FileSystem.get(conf);
+		
+		if(fs.exists(path)) {
+			System.out.println("Matrix File already exists");
+			return;
+		}
+		
+		FSDataOutputStream out = fs.create(path);
+		
+		// generate U matrix
+		for(int i = 1; i <= height; i++) {
+			for(int j = 1; j <= width; j++) {
+				float value = (float) generator.nextGaussian();
+				String output = String.format("<%s, %d, %d, %f>\n", type, i, j, value);
+				out.writeChars(output);
+			}
+		}
+		
+		out.close();
+		fs.close();
 	}
 }
