@@ -155,6 +155,20 @@ public class UVDecomposer {
 			}
 		}
 		
+		for(int k = 0; k < (index1 / BLOCK_SIZE); k++) {
+			for(int i = 0; i < D_DIMENSION; i++) {
+				for(int j = k * BLOCK_SIZE+1; j <= (k+1) * BLOCK_SIZE; j++) {
+					String output;
+					if(type == "U") {
+						output = String.format("<%s, %d, %d, %f>\n", type, j, i, value);
+					} else {
+						output = String.format("<%s, %d, %d, %f>\n", type, i, j, value);
+					}
+					out.writeChars(output);
+				}
+			}
+		}
+		
 		
 		out.close();
 		fs.close();
