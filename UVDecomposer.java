@@ -25,6 +25,7 @@ public class UVDecomposer {
 	private static final int NBR_MOVIES = 100;
 	private static final int NBR_USERS = 5000;
 	private static final int D_DIMENSION = 10;
+	private static final int BLOCK_SIZE = 1000;
 	
 	public static class InitializationMapper extends MapReduceBase implements Mapper<IntWritable, TupleValue, IntWritable, TupleValue>
 	{
@@ -121,14 +122,14 @@ public class UVDecomposer {
 			// Create U matrix
 			createMatrix(conf, uPath, NBR_USERS, D_DIMENSION, "U");
 			// Create V matrix - @Todo: Eventually need to write custom method to store column wise!!
-			createMatrix(conf, vPath, D_DIMENSION, NBR_MOVIES, "V");
+			createMatrix(conf, vPath, NBR_MOVIES, D_DIMENSION, "V");
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
 	}
 	
 	
-	private static void createMatrix(JobConf conf, Path path, int height, int width, String type) throws IOException {
+	private static void createMatrix(JobConf conf, Path path, int index1, int index2, String type) throws IOException {
 		Random generator = new Random();
 		
 		FileSystem fs = FileSystem.get(conf);
@@ -140,14 +141,20 @@ public class UVDecomposer {
 		
 		FSDataOutputStream out = fs.create(path);
 		
-		// generate U matrix
-		for(int i = 1; i <= height; i++) {
-			for(int j = 1; j <= width; j++) {
+		// generate matrix
+		for(int i = 1; i <= index1; i++) {
+			for(int j = 1; j <= index2; j++) {
 				float value = (float) generator.nextGaussian();
-				String output = String.format("<%s, %d, %d, %f>\n", type, i, j, value);
+				String output;
+				if(type == "U") {
+					output = String.format("<%s, %d, %d, %f>\n", type, i, j, value);
+				} else {
+					output = String.format("<%s, %d, %d, %f>\n", type, j, i, value);
+				}
 				out.writeChars(output);
 			}
 		}
+		
 		
 		out.close();
 		fs.close();
