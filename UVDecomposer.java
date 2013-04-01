@@ -16,16 +16,18 @@ import org.apache.hadoop.mapred.Mapper;
 import org.apache.hadoop.mapred.OutputCollector;
 import org.apache.hadoop.mapred.Reducer;
 import org.apache.hadoop.mapred.Reporter;
-import org.apache.hadoop.mapred.TextOutputFormat;
-import org.apache.hadoop.mapreduce.lib.map.WrappedMapper.Context;
-import org.apache.hadoop.mapred.lib.MultipleOutputs;
 
 public class UVDecomposer {
 	
-	private static final int NBR_MOVIES = 100;
-	private static final int NBR_USERS = 5000;
-	private static final int D_DIMENSION = 10;
-	private static final int BLOCK_SIZE = 1000;
+	public static final int NBR_MOVIES = 100;
+	public static final int NBR_USERS = 5000;
+	public static final int D_DIMENSION = 10;
+	public static final int BLOCK_SIZE = 1000;
+	
+	public static final String U_MATRIX_INPUT_FORMAT = "decomposer.u.inputformat";
+	public static final String V_MATRIX_INPUT_FORMAT = "decomposer.v.inputformat";
+	public static final String U_MATRIX_PATH = "decomposer.u.path";
+	public static final String V_MATRIX_PATH = "decomposer.v.path";
 	
 	public static class InitializationMapper extends MapReduceBase implements Mapper<IntWritable, TupleValue, IntWritable, TupleValue>
 	{
