@@ -64,45 +64,39 @@ public class MatrixInputRecordReader<K1, V1, K2, V2> implements RecordReader<Mat
 	 */
 	public boolean next(MatrixInputValueWritable key, MatrixInputValueWritable value) throws IOException {
 		
-		int i = 0, j = 0;;
-		boolean goToNextU = true, allDone = false;
+		int i = 0;
+		boolean allDone = false;
 		MatrixInputValueWritable[] uValues = new MatrixInputValueWritable[UVDecomposer.D_DIMENSION];
 		MatrixInputValueWritable[] vValues = new MatrixInputValueWritable[UVDecomposer.D_DIMENSION*UVDecomposer.BLOCK_SIZE];
 		
 		while(vRecordReader.next(vKey, vValue)) {
-			MatrixInputValueWritable vVal = (MatrixInputValueWritable) uValue;
+			MatrixInputValueWritable vVal = (MatrixInputValueWritable) vValue;
 			vValues[i] = new MatrixInputValueWritable(vVal.getType(), vVal.getRow(), vVal.getColumn(), vVal.getValue());
 			i++;
 		}
+		System.out.println("Read "+i+" elements!");
 		
-		if(goToNextU) {
-			for(int k = 0; k < UVDecomposer.D_DIMENSION; k++) {
-				if(uRecordReader.next(uKey, uValue)) {
-					MatrixInputValueWritable uVal = (MatrixInputValueWritable) uValue;
-					uValues[k] = new MatrixInputValueWritable(uVal.getType(), uVal.getRow(), uVal.getColumn(), uVal.getValue());
-					goToNextU = false;
-				} else {
-					allDone = true;
-				}
+		for(int k = 0; k < UVDecomposer.D_DIMENSION; k++) {
+			if(uRecordReader.next(uKey, uValue)) {
+				MatrixInputValueWritable uVal = (MatrixInputValueWritable) uValue;
+				uValues[k] = new MatrixInputValueWritable(uVal.getType(), uVal.getRow(), uVal.getColumn(), uVal.getValue());
+			} else {
+				allDone = true;
 			}
-			
-			if(!allDone) {
-				do {
-					if(j < vValues.length) {
-						int index = j % UVDecomposer.D_DIMENSION;
-						String debug = String.format("Urow: %d,  Ucolumn: %d, Vrow: %d, Vcolumn: %d, part of %d/%d", uValues[index].getRow(), uValues[index].getColumn(), uValues[j].getRow(), uValues[j].getColumn(), uValues[index].getRow(),uValues[j].getColumn());
-						System.out.println(debug);
-						value.setValues(uValues[j].getType(), uValues[j].getRow(), uValues[j].getColumn(), uValues[j].getValue());
-						key.setValues(uValues[index].getType(), uValues[index].getRow(), uValues[index].getColumn(), uValues[index].getValue());
-						i++;
-						if(i == UVDecomposer.D_DIMENSION) {
-							i = 0;
-						}
-					} else {
-						goToNextU = true;
-					}
-				} while(!goToNextU);
-			}		
+		}
+		
+		if(!allDone) {
+			int j = 0;
+			while(j < i) {
+				int index = j % UVDecomposer.D_DIMENSION;
+				String debug = String.format("Index: %d Urow: %d,  Ucolumn: %d, Vrow: %d, Vcolumn: %d, part of %d/%d", index, uValues[index].getRow(), uValues[index].getColumn(), vValues[j].getRow(), vValues[j].getColumn(), uValues[index].getRow(),vValues[j].getColumn());
+				System.out.println(debug);
+				// value is the v element
+				value.setValues(vValues[j].getType(), vValues[j].getRow(), vValues[j].getColumn(), vValues[j].getValue());
+				// key contains the u element
+				key.setValues(uValues[index].getType(), uValues[index].getRow(), uValues[index].getColumn(), uValues[index].getValue());
+				j++;
+			};
 		}
 		
 		return !allDone;

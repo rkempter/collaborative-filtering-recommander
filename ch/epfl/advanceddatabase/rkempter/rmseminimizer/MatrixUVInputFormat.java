@@ -49,7 +49,7 @@ public class MatrixUVInputFormat extends FileInputFormat<MatrixInputValueWritabl
 		FileStatus uStatus = fs.getFileStatus(new Path(uInputPathString));
 		
 		// Big file, create a split for each line
-		InputSplit[] uSplits = getBlockLineSplits(job, uStatus, UVDecomposer.D_DIMENSION*UVDecomposer.NBR_MOVIES);
+		InputSplit[] uSplits = getBlockLineSplits(job, uStatus, UVDecomposer.D_DIMENSION*UVDecomposer.BLOCK_SIZE);
 		
 		// Smaller file - eventually don't need to create blocks here, instead use one big split!
 		InputSplit[] vSplits = getBlockLineSplits(job, vStatus, UVDecomposer.D_DIMENSION*UVDecomposer.BLOCK_SIZE);

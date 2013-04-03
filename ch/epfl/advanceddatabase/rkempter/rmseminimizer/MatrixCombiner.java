@@ -20,19 +20,21 @@ public class MatrixCombiner extends MapReduceBase implements Reducer<IntWritable
 		float total_k = 0;
 		int matrixType = 0, column = 0;
 		int lastMatrixType = 0;
-		int lastColumn = 0;
+		int lastColumn = 1;
+		boolean writeout = false;
 		
 		while (values.hasNext()) {
 			// replace ValueType with the real type of your value
 			MatrixUVValueWritable element = values.next(); // This does not work!!
 			matrixType = element.getType();
 			column = element.getColumn();
+			writeout = false;
 			if(lastColumn != column) {
 				MatrixUVValueWritable outValue = new MatrixUVValueWritable(lastMatrixType, lastColumn, total_x, total_k);
 				output.collect(key, outValue);
 				total_x = 0;
 				total_k = 0;
-				
+				writeout = true;
 				System.out.println("Row: "+key.get()+" column: "+lastColumn);
 			}
 			lastColumn = column;
@@ -43,9 +45,10 @@ public class MatrixCombiner extends MapReduceBase implements Reducer<IntWritable
 				total_k += element.getValue_k();
 			}
 		}
-		
-		MatrixUVValueWritable outValue = new MatrixUVValueWritable(matrixType, column, total_x, total_k);
-		output.collect(key, outValue);
+		if(!writeout) {
+			MatrixUVValueWritable outValue = new MatrixUVValueWritable(matrixType, column, total_x, total_k);
+			output.collect(key, outValue);
+		}
 	}
 
 }
