@@ -52,7 +52,7 @@ public class MatrixUVInputFormat extends FileInputFormat<MatrixInputValueWritabl
 		InputSplit[] uSplits = getBlockLineSplits(job, uStatus, UVDecomposer.D_DIMENSION*UVDecomposer.NBR_MOVIES);
 		
 		// Smaller file - eventually don't need to create blocks here, instead use one big split!
-		InputSplit[] vSplits = getBlockLineSplits(job, vStatus, UVDecomposer.D_DIMENSION*UVDecomposer.NBR_MOVIES);
+		InputSplit[] vSplits = getBlockLineSplits(job, vStatus, UVDecomposer.D_DIMENSION*UVDecomposer.BLOCK_SIZE);
 		
 		// Create new splits by computing the cartesian product of 
 		// all blocks from U with all blocks from V

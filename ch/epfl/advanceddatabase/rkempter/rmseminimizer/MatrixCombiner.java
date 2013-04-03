@@ -32,6 +32,8 @@ public class MatrixCombiner extends MapReduceBase implements Reducer<IntWritable
 				output.collect(key, outValue);
 				total_x = 0;
 				total_k = 0;
+				
+				System.out.println("Row: "+key.get()+" column: "+lastColumn);
 			}
 			lastColumn = column;
 			lastMatrixType = matrixType;

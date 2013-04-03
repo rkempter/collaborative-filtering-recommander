@@ -20,7 +20,7 @@ public class UVDecomposer {
 	public static final int NBR_MOVIES = 100;
 	public static final int NBR_USERS = 5000;
 	public static final int D_DIMENSION = 10;
-	public static final int BLOCK_SIZE = 1000;
+	public static final int BLOCK_SIZE = 100;
 	public static final int COUNTER_MULTIPLICATOR = 10000000;
 	
 	public static final int MATRIX_U = 1;
