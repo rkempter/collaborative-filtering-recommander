@@ -20,12 +20,12 @@ import org.apache.hadoop.util.hash.Hash;
 
 public class UVDecomposer {
 	
-	public static final int NBR_MOVIES = 100;
-	public static final int NBR_USERS = 5000;
+	public static final int NBR_MOVIES = 17770;
+	public static final int NBR_USERS = 480189;
 	public static final int D_DIMENSION = 10;
-	public static final int BLOCK_SIZE = 100;
+	public static final int BLOCK_SIZE = 5000;
 	public static final int COUNTER_MULTIPLICATOR = 10000000;
-	public static final int U_INPUT_BLOCK_SIZE = 2500;
+	public static final int U_INPUT_BLOCK_SIZE = 6000;
 	
 	public static final int MATRIX_U = 1;
 	public static final int MATRIX_V = 2;
@@ -42,10 +42,10 @@ public class UVDecomposer {
 	public static final String V_PATH = "/std44/output/V_i/vmatrix.txt";
 	public static final String M_PATH = "/std44/output/M/";
 	public static final String I_PATH = "/std44/output/I/";
-	public static final String INPUT_PATH = "/std44/input/";
+	public static final String INPUT_PATH = "/netflix/input/large/";
 	
 	
-	public static final int NUM_NONBLANK = 18837;//98370417
+	public static final int NUM_NONBLANK = 98370417;
 	
 	// Counters for the tasks
 	public static enum OVERALL_COUNTERS {
@@ -63,8 +63,6 @@ public class UVDecomposer {
 		
 		BloomFilter filter = new BloomFilter(vectorSize, nbHash, Hash.MURMUR_HASH);
 		
-		
-		
 		JobConf conf = new JobConf(UVDecomposer.class);
 		
 		conf.setJobName("UV Decomposer");
@@ -73,9 +71,8 @@ public class UVDecomposer {
 		
 		conf.setOutputKeyClass(IntWritable.class);
 		conf.setOutputValueClass(TupleValueWritable.class);
-		
-		// Specify output for normalized matrix
-		//MultipleOutputs.addNamedOutput(conf, "norm-matrix", TextOutputFormat.class, IntWritable.class, TupleValue.class);
+		conf.setNumMapTasks(174);
+		conf.setNumReduceTasks(100);
 		
 		String inputPath = INPUT_PATH;
 		String outputPath = M_PATH;
@@ -108,45 +105,45 @@ public class UVDecomposer {
 		}
 //		
 		/* UV test */
-		int xPos = 2;
-		JobConf uvConf = new JobConf(UVDecomposer.class);
-		uvConf.setJobName("UV Conf");
-		
-		//Set map & reducer output classes
-		uvConf.setOutputKeyClass(IntWritable.class);
-		uvConf.setMapOutputValueClass(MatrixUVValueWritable.class);
-		uvConf.setOutputValueClass(MatrixInputValueWritable.class);
-		uvConf.setCombinerClass(MatrixCombiner.class);
-		
-		// Set the matrix x position and the matrix type
-		uvConf.setInt(UVDecomposer.MATRIX_X_POSITION, xPos);
-		uvConf.setInt(UVDecomposer.MATRIX_TYPE, MATRIX_U);
-		
-		MatrixUVInputFormat.setUInputInfo(uvConf, UVTupleInputFormat.class, "/std44/output/U_i/");
-		MatrixUVInputFormat.setVInputInfo(uvConf, UVTupleInputFormat.class, "/std44/output/V_i/");
-		
-		//uvConf.setInputFormat(MatrixUVInputFormat.class);
-		uvConf.setOutputFormat(MatrixUVOutputFormat.class);
-		
-		MultipleInputs.addInputPath(uvConf, new Path("/std44/output/U_i/"), MatrixUVInputFormat.class, MatrixUVMapper.class);
-		MultipleInputs.addInputPath(uvConf, new Path(UVDecomposer.M_PATH), TupleValueInputFormat.class, MatrixMMapper.class);
-		
-		FileOutputFormat.setOutputPath(uvConf, new Path(UVDecomposer.I_PATH));
-			
-		uvConf.setReducerClass(MatrixUVReducer.class);
-		
-		client.setConf(uvConf);
-		
-		
-		
-		// First element
-		
-		//uvConf = MatrixUVDriver.getNewUVConf(uvConf, MATRIX_U, 1);
-		try {
-			JobClient.runJob(uvConf);
-		} catch (Exception e) {
-			e.printStackTrace();
-		}
+//		int xPos = 2;
+//		JobConf uvConf = new JobConf(UVDecomposer.class);
+//		uvConf.setJobName("UV Conf");
+//		
+//		//Set map & reducer output classes
+//		uvConf.setOutputKeyClass(IntWritable.class);
+//		uvConf.setMapOutputValueClass(MatrixUVValueWritable.class);
+//		uvConf.setOutputValueClass(MatrixInputValueWritable.class);
+//		uvConf.setCombinerClass(MatrixCombiner.class);
+//		
+//		// Set the matrix x position and the matrix type
+//		uvConf.setInt(UVDecomposer.MATRIX_X_POSITION, xPos);
+//		uvConf.setInt(UVDecomposer.MATRIX_TYPE, MATRIX_U);
+//		
+//		MatrixUVInputFormat.setUInputInfo(uvConf, UVTupleInputFormat.class, "/std44/output/U_i/");
+//		MatrixUVInputFormat.setVInputInfo(uvConf, UVTupleInputFormat.class, "/std44/output/V_i/");
+//		
+//		//uvConf.setInputFormat(MatrixUVInputFormat.class);
+//		uvConf.setOutputFormat(MatrixUVOutputFormat.class);
+//		
+//		MultipleInputs.addInputPath(uvConf, new Path("/std44/output/U_i/"), MatrixUVInputFormat.class, MatrixUVMapper.class);
+//		MultipleInputs.addInputPath(uvConf, new Path(UVDecomposer.M_PATH), TupleValueInputFormat.class, MatrixMMapper.class);
+//		
+//		FileOutputFormat.setOutputPath(uvConf, new Path(UVDecomposer.I_PATH));
+//			
+//		uvConf.setReducerClass(MatrixUVReducer.class);
+//		
+//		client.setConf(uvConf);
+//		
+//		
+//		
+//		// First element
+//		
+//		//uvConf = MatrixUVDriver.getNewUVConf(uvConf, MATRIX_U, 1);
+//		try {
+//			JobClient.runJob(uvConf);
+//		} catch (Exception e) {
+//			e.printStackTrace();
+//		}
 	}
 	
 	
