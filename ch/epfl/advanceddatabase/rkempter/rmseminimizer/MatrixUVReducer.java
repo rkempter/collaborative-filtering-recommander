@@ -46,24 +46,47 @@ public class MatrixUVReducer extends MapReduceBase implements
 			if(type == UVDecomposer.MATRIX_M) {
 				mVal.put(value.getColumn(), value.getValue_k());
 				mSum += value.getValue_k();
+				//System.out.println("Matrix M element: "+key+" / "+value.getColumn());
 			} else {
-				if(type == 'V') {
-					matrixType = 'V';
+//				if(type == 'V') {
+//					matrixType = 'V';
+//				}
+				//System.out.println("Matrix UV element: "+key+" / "+value.getColumn()+" "+value.getValue_k()+" "+value.getValue_x());
+				
+				// In case, values were computed on different mappers -> combiner didn't merge them to one element.
+				if(!xVal.containsKey(value.getColumn())) {
+					xVal.put(value.getColumn(), value.getValue_x());
+				} else {
+					float newValue = xVal.get(value.getColumn()) + value.getValue_x();
+					xVal.put(value.getColumn(), newValue);
 				}
-				xVal.put(value.getColumn(), value.getValue_x());
 				xSum += value.getValue_x();
-				kVal.put(value.getColumn(), value.getValue_k());
+				if(!kVal.containsKey(value.getColumn())) {
+					kVal.put(value.getColumn(), value.getValue_k());
+				} else {
+					float newValue = kVal.get(value.getColumn()) + value.getValue_k();
+					kVal.put(value.getColumn(), newValue);
+				}
 				kSum += value.getValue_k();
 			}
 		}
 		
 		// Compute X
+		System.out.println("XSUM: "+xSum);
+		System.out.println("mSUM: "+mSum);
+		System.out.println("kSUM: "+kSum);
 		float x = (mSum - kSum) / xSum;
 		
 		// Compute the RMSE
 		float rmse = 0;
 		for(Map.Entry<Integer, Float> entry : mVal.entrySet()) {
 			int index = entry.getKey();
+			if(!xVal.containsKey(index)) {
+				System.out.println("No x value available for "+key.get()+" / "+index);
+			}
+			if(!kVal.containsKey(index)) {
+				System.out.println("No x value available for "+key.get()+" / "+index);
+			}
 			float val = entry.getValue() - xVal.get(index) * x - kVal.get(index);
 			rmse += (float) Math.pow(val, 2);
 		}

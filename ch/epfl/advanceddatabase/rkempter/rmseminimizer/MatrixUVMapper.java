@@ -31,6 +31,8 @@ public class MatrixUVMapper extends MapReduceBase implements Mapper<MatrixInputV
 		float uValue = uElement.getValue();
 		float vValue = vElement.getValue();
 		float result_x = 0, result_k = 0;
+		System.out.println("uElement: "+uElement.getRow()+" "+uElement.getColumn()+" "+uElement.getValue());
+		System.out.println("vElement: "+vElement.getRow()+" "+vElement.getColumn()+" "+vElement.getValue());
 		
 		if(column != xPos) {
 			result_k = uValue * vValue;

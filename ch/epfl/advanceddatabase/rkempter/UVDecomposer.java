@@ -14,6 +14,9 @@ import org.apache.hadoop.mapred.FileInputFormat;
 import org.apache.hadoop.mapred.FileOutputFormat;
 import org.apache.hadoop.mapred.JobClient;
 import org.apache.hadoop.mapred.JobConf;
+import org.apache.hadoop.mapred.lib.MultipleInputs;
+import org.apache.hadoop.util.bloom.BloomFilter;
+import org.apache.hadoop.util.hash.Hash;
 
 public class UVDecomposer {
 	
@@ -22,6 +25,7 @@ public class UVDecomposer {
 	public static final int D_DIMENSION = 10;
 	public static final int BLOCK_SIZE = 100;
 	public static final int COUNTER_MULTIPLICATOR = 10000000;
+	public static final int U_INPUT_BLOCK_SIZE = 2500;
 	
 	public static final int MATRIX_U = 1;
 	public static final int MATRIX_V = 2;
@@ -40,6 +44,9 @@ public class UVDecomposer {
 	public static final String I_PATH = "/std44/output/I/";
 	public static final String INPUT_PATH = "/std44/input/";
 	
+	
+	public static final int NUM_NONBLANK = 18837;//98370417
+	
 	// Counters for the tasks
 	public static enum OVERALL_COUNTERS {
 		RMSE_COUNTER
@@ -48,6 +55,16 @@ public class UVDecomposer {
 
 	public static void main(String[] args) {
 		JobClient client = new JobClient();
+		
+		// Bloom filter
+		float falsePosRate = (float) 0.1;
+		int vectorSize = getOptimalBloomFilterSize(NUM_NONBLANK, falsePosRate);
+		int nbHash = getOptimalK(NUM_NONBLANK, vectorSize);
+		
+		BloomFilter filter = new BloomFilter(vectorSize, nbHash, Hash.MURMUR_HASH);
+		
+		
+		
 		JobConf conf = new JobConf(UVDecomposer.class);
 		
 		conf.setJobName("UV Decomposer");
@@ -89,28 +106,33 @@ public class UVDecomposer {
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
-		
+//		
 		/* UV test */
-		int xPos = 1;
+		int xPos = 2;
 		JobConf uvConf = new JobConf(UVDecomposer.class);
 		uvConf.setJobName("UV Conf");
-		MatrixUVInputFormat.setUInputInfo(conf, UVTupleInputFormat.class, "/std44/output/U_i/");
-		MatrixUVInputFormat.setVInputInfo(conf, UVTupleInputFormat.class, "/std44/output/V_i/");
 		
-		uvConf.setInputFormat(MatrixUVInputFormat.class);
-		uvConf.setOutputFormat(MatrixUVOutputFormat.class);
-		
-		uvConf.setInt(UVDecomposer.MATRIX_X_POSITION, xPos);
-		uvConf.setInt(UVDecomposer.MATRIX_TYPE, MATRIX_U);
-		
+		//Set map & reducer output classes
 		uvConf.setOutputKeyClass(IntWritable.class);
 		uvConf.setMapOutputValueClass(MatrixUVValueWritable.class);
 		uvConf.setOutputValueClass(MatrixInputValueWritable.class);
 		uvConf.setCombinerClass(MatrixCombiner.class);
 		
-		FileOutputFormat.setOutputPath(uvConf, new Path(UVDecomposer.I_PATH));
+		// Set the matrix x position and the matrix type
+		uvConf.setInt(UVDecomposer.MATRIX_X_POSITION, xPos);
+		uvConf.setInt(UVDecomposer.MATRIX_TYPE, MATRIX_U);
 		
-		uvConf.setMapperClass(MatrixUVMapper.class);
+		MatrixUVInputFormat.setUInputInfo(uvConf, UVTupleInputFormat.class, "/std44/output/U_i/");
+		MatrixUVInputFormat.setVInputInfo(uvConf, UVTupleInputFormat.class, "/std44/output/V_i/");
+		
+		//uvConf.setInputFormat(MatrixUVInputFormat.class);
+		uvConf.setOutputFormat(MatrixUVOutputFormat.class);
+		
+		MultipleInputs.addInputPath(uvConf, new Path("/std44/output/U_i/"), MatrixUVInputFormat.class, MatrixUVMapper.class);
+		MultipleInputs.addInputPath(uvConf, new Path(UVDecomposer.M_PATH), TupleValueInputFormat.class, MatrixMMapper.class);
+		
+		FileOutputFormat.setOutputPath(uvConf, new Path(UVDecomposer.I_PATH));
+			
 		uvConf.setReducerClass(MatrixUVReducer.class);
 		
 		client.setConf(uvConf);
@@ -143,7 +165,7 @@ public class UVDecomposer {
 		// generate matrix
 		for(int i = 1; i <= index; i++) {
 			for(int j = 1; j <= D_DIMENSION; j++) {
-				float value = (float) generator.nextGaussian();
+				float value = (float) generator.nextGaussian() / 10;
 				String output;
 				if(type == "U") {
 					output = String.format("<%s,%d,%d,%f>\n", type, i, j, value);
@@ -156,5 +178,16 @@ public class UVDecomposer {
 		
 		out.close();
 		fs.close();
+	}
+	
+	public static int getOptimalBloomFilterSize(int numRecords,
+			float falsePosRate) {
+		int size = (int) (-numRecords * (float) Math.log(falsePosRate) / Math
+				.pow(Math.log(2), 2));
+		return size;
+	}
+
+	public static int getOptimalK(float numMembers, float vectorSize) {
+		return (int) Math.round(vectorSize / numMembers * Math.log(2));
 	}
 }

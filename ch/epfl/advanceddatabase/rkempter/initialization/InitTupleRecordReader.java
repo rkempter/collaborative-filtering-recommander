@@ -32,7 +32,7 @@ class InitTupleRecordReader implements RecordReader<IntWritable, TupleValueWrita
     // parse the lineValue which is in the format:
     // objName, x, y, z
     String [] pieces = lineValue.toString().split(",");
-    if (pieces.length != 4) {
+    if (pieces.length < 3) {
       throw new IOException("Invalid record received");
     }
 
