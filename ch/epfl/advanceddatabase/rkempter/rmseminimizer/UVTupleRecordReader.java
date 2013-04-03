@@ -30,40 +30,38 @@ class UVTupleRecordReader implements RecordReader<IntWritable, MatrixInputValueW
 			return false;
 		}
 		
-		String stringToMatch = lineValue.toString();
-		// parse the lineValue which is in the format:
-	    // objName, x, y, z
-		String regexpPattern = "<([U,V]),([0-9]+),([0-9]+),([0-9].[0-9]+)>";
-		Pattern pattern = Pattern.compile(regexpPattern);
-		Matcher matcher = pattern.matcher(stringToMatch);
-		MatchResult mr = matcher.toMatchResult();
+		String stringToMatch = lineValue.toString().trim();
+		String regexpPattern = ".*<([UV]),([0-9]+),([0-9]+),(-?[0-9].[0-9]+)>.*";
+		Matcher matcher = Pattern.compile(regexpPattern).matcher(stringToMatch);
+
+		if(matcher.matches()) {
+			if(matcher.groupCount() != 4) {
+				throw new IOException("Invalid record received");
+			}
 		
-		if(mr.groupCount() != 4) {
-			throw new IOException("Invalid record received");
+			int row;
+			int column;
+			float value;
+			String type = matcher.group(1).trim();
+			
+			try{
+				row = Integer.parseInt(matcher.group(2).trim());
+				column = Integer.parseInt(matcher.group(3).trim());
+				value = Float.parseFloat(matcher.group(4).trim());
+			} catch(NumberFormatException nfe) {
+				throw new IOException("Error parsing values in record");
+			}
+			
+			key.set(row);
+			if(type == "U") {
+				tupleValue.setValues('U', row, column, value);
+			} else {
+				tupleValue.setValues('V', row, column, value);
+			}
+			return true;
 		}
 		
-		int row;
-		int column;
-		float value;
-		String type = mr.group(0).trim();
-		
-		try{
-			row = Integer.parseInt(mr.group(1).trim());
-			column = Integer.parseInt(mr.group(2).trim());
-			value = Float.parseFloat(mr.group(3).trim());
-		} catch(NumberFormatException nfe) {
-			throw new IOException("Error parsing values in record");
-		}
-		
-		key.set(row);
-		if(type == "U") {
-			tupleValue.setValues('U', row, column, value);
-		} else {
-			tupleValue.setValues('V', row, column, value);
-		}
-		
-		return true;
-		
+		return false;
 	}
 
 	public void close() throws IOException {

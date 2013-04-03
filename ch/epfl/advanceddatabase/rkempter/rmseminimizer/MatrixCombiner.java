@@ -19,12 +19,23 @@ public class MatrixCombiner extends MapReduceBase implements Reducer<IntWritable
 		float total_x = 0;
 		float total_k = 0;
 		int matrixType = 0, column = 0;
+		int lastMatrixType = 0;
+		int lastColumn = 0;
 		
 		while (values.hasNext()) {
 			// replace ValueType with the real type of your value
 			MatrixUVValueWritable element = values.next(); // This does not work!!
 			matrixType = element.getType();
 			column = element.getColumn();
+			if(lastColumn != column) {
+				MatrixUVValueWritable outValue = new MatrixUVValueWritable(lastMatrixType, lastColumn, total_x, total_k);
+				output.collect(key, outValue);
+				total_x = 0;
+				total_k = 0;
+			}
+			lastColumn = column;
+			lastMatrixType = matrixType;
+			
 			if(matrixType == UVDecomposer.MATRIX_U ||  matrixType == UVDecomposer.MATRIX_V) {
 				total_x += element.getValue_x();
 				total_k += element.getValue_k();

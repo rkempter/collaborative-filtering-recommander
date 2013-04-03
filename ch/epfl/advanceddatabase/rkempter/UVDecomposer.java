@@ -3,6 +3,8 @@ import java.io.IOException;
 import java.util.Random;
 
 import ch.epfl.advanceddatabase.rkempter.initialization.*;
+import ch.epfl.advanceddatabase.rkempter.rmseminimizer.*;
+import ch.epfl.advanceddatabase.rkempter.filemerger.*;
 
 import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileSystem;
@@ -32,11 +34,17 @@ public class UVDecomposer {
 	public static final String V_MATRIX_PATH = "decomposer.v.path";
 	public static final String MATRIX_X_POSITION = "decomposer.x.position";
 	public static final String MATRIX_TYPE = "decomposer.matrix.type";
+	public static final String U_PATH = "/std44/output/U_i/umatrix.txt";
+	public static final String V_PATH = "/std44/output/V_i/vmatrix.txt";
+	public static final String M_PATH = "/std44/output/M/";
+	public static final String I_PATH = "/std44/output/I/";
+	public static final String INPUT_PATH = "/std44/input/";
 	
 	// Counters for the tasks
 	public static enum OVERALL_COUNTERS {
 		RMSE_COUNTER
 	};
+	
 
 	public static void main(String[] args) {
 		JobClient client = new JobClient();
@@ -44,6 +52,7 @@ public class UVDecomposer {
 		
 		conf.setJobName("UV Decomposer");
 		conf.setInputFormat(TupleValueInputFormat.class);
+		conf.setOutputFormat(InitializationOutputFormat.class);
 		
 		conf.setOutputKeyClass(IntWritable.class);
 		conf.setOutputValueClass(TupleValueWritable.class);
@@ -51,8 +60,8 @@ public class UVDecomposer {
 		// Specify output for normalized matrix
 		//MultipleOutputs.addNamedOutput(conf, "norm-matrix", TextOutputFormat.class, IntWritable.class, TupleValue.class);
 		
-		String inputPath = "/std44/input/";
-		String outputPath = "/std44/output/";
+		String inputPath = INPUT_PATH;
+		String outputPath = M_PATH;
 		
 		FileInputFormat.addInputPath(conf, new Path(inputPath));
 		FileOutputFormat.setOutputPath(conf, new Path(outputPath));
@@ -80,6 +89,42 @@ public class UVDecomposer {
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
+		
+		/* UV test */
+		int xPos = 1;
+		JobConf uvConf = new JobConf(UVDecomposer.class);
+		uvConf.setJobName("UV Conf");
+		MatrixUVInputFormat.setUInputInfo(conf, UVTupleInputFormat.class, "/std44/output/U_i/");
+		MatrixUVInputFormat.setVInputInfo(conf, UVTupleInputFormat.class, "/std44/output/V_i/");
+		
+		uvConf.setInputFormat(MatrixUVInputFormat.class);
+		uvConf.setOutputFormat(MatrixUVOutputFormat.class);
+		
+		uvConf.setInt(UVDecomposer.MATRIX_X_POSITION, xPos);
+		uvConf.setInt(UVDecomposer.MATRIX_TYPE, MATRIX_U);
+		
+		uvConf.setOutputKeyClass(IntWritable.class);
+		uvConf.setMapOutputValueClass(MatrixUVValueWritable.class);
+		uvConf.setOutputValueClass(MatrixInputValueWritable.class);
+		uvConf.setCombinerClass(MatrixCombiner.class);
+		
+		FileOutputFormat.setOutputPath(uvConf, new Path(UVDecomposer.I_PATH));
+		
+		uvConf.setMapperClass(MatrixUVMapper.class);
+		uvConf.setReducerClass(MatrixUVReducer.class);
+		
+		client.setConf(uvConf);
+		
+		
+		
+		// First element
+		
+		//uvConf = MatrixUVDriver.getNewUVConf(uvConf, MATRIX_U, 1);
+		try {
+			JobClient.runJob(uvConf);
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
 	}
 	
 	
@@ -96,20 +141,18 @@ public class UVDecomposer {
 		FSDataOutputStream out = fs.create(path);
 		
 		// generate matrix
-		
-		for(int i = 0; i < index; i++) {
-			for(int j = 0; j < D_DIMENSION; j++) {
+		for(int i = 1; i <= index; i++) {
+			for(int j = 1; j <= D_DIMENSION; j++) {
 				float value = (float) generator.nextGaussian();
 				String output;
 				if(type == "U") {
-					output = String.format("<%s, %d, %d, %f>\n", type, i, j, value);
+					output = String.format("<%s,%d,%d,%f>\n", type, i, j, value);
 				} else {
-					output = String.format("<%s, %d, %d, %f>\n", type, j, i, value);
+					output = String.format("<%s,%d,%d,%f>\n", type, j, i, value);
 				}
-				out.writeChars(output);
+				out.writeBytes(output);
 			}
 		}
-		
 		
 		out.close();
 		fs.close();

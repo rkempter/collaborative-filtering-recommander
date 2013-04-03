@@ -1,4 +1,5 @@
-package ch.epfl.advanceddatabase.rkempter.rmseminimizer;
+package ch.epfl.advanceddatabase.rkempter.initialization;
+
 import java.io.DataOutputStream;
 import java.io.IOException;
 
@@ -13,18 +14,18 @@ import org.apache.hadoop.mapred.Reporter;
 import org.apache.hadoop.util.Progressable;
 
 
-public class MatrixUVOutputFormat<K, V> extends FileOutputFormat<IntWritable, MatrixInputValueWritable> {
+public class InitializationOutputFormat<K, V> extends FileOutputFormat<IntWritable, TupleValueWritable> {
 	
-	protected static class MatrixUVElementWriter<K, V> implements RecordWriter<IntWritable, MatrixInputValueWritable> {
+	protected static class InitializationElementWriter<K, V> implements RecordWriter<IntWritable, TupleValueWritable> {
 		
 		private DataOutputStream out;
 		
-		public MatrixUVElementWriter(DataOutputStream out) throws IOException {
+		public InitializationElementWriter(DataOutputStream out) throws IOException {
 			this.out = out;
 		}
 		
-		public synchronized void write(IntWritable key, MatrixInputValueWritable value) throws IOException {
-		    String output = String.format("<%c, %d, %d, %f>\n", value.getType(), key.get(), value.getColumn(), value.getValue());
+		public synchronized void write(IntWritable key, TupleValueWritable value) throws IOException {
+		    String output = String.format("%d,%d,%f\n", key.get(), value.getIndex(), value.getGrade());
 		    out.writeBytes(output);
 		}
 
@@ -34,12 +35,12 @@ public class MatrixUVOutputFormat<K, V> extends FileOutputFormat<IntWritable, Ma
 	}
 	
 	
-	public RecordWriter<IntWritable, MatrixInputValueWritable> getRecordWriter(FileSystem ignored, JobConf conf,
+	public RecordWriter<IntWritable, TupleValueWritable> getRecordWriter(FileSystem ignored, JobConf conf,
 			String name, Progressable progress) throws IOException {
 		Path file = FileOutputFormat.getTaskOutputPath(conf, name);
 		FileSystem fs = file.getFileSystem(conf);
 		FSDataOutputStream fileOut = fs.create(file, progress);
-		return new MatrixUVElementWriter<IntWritable, MatrixInputValueWritable>(fileOut);
+		return new InitializationElementWriter<IntWritable, TupleValueWritable>(fileOut);
 	}
 
 }

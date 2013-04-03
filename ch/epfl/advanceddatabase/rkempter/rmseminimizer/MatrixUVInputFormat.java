@@ -20,10 +20,10 @@ import org.apache.hadoop.mapred.join.CompositeInputSplit;
 
 public class MatrixUVInputFormat extends FileInputFormat<MatrixInputValueWritable, MatrixInputValueWritable> {
 	
-	public static String U_INPUT_FORMAT = "matrix.u.inputformat";
-	public static String V_INPUT_FORMAT = "matrix.v.inputformat";
-	public static String U_INPUT_PATH = "matrix.u.path";
-	public static String V_INPUT_PATH = "matrix.v.path";
+	public static final String U_INPUT_FORMAT = "matrix.u.inputformat";
+	public static final String V_INPUT_FORMAT = "matrix.v.inputformat";
+	public static final String U_INPUT_PATH = "matrix.u.path";
+	public static final String V_INPUT_PATH = "matrix.v.path";
 	
 	public static void setUInputInfo(JobConf job, Class<? extends FileInputFormat> inputFormat, String inputPath) {
 		job.set(U_INPUT_FORMAT, inputFormat.getCanonicalName());
@@ -40,18 +40,19 @@ public class MatrixUVInputFormat extends FileInputFormat<MatrixInputValueWritabl
 			throws IOException {
 		
 		// Get the FileStatus
-		String vInputPathString = job.get(V_INPUT_PATH);
-		String uInputPathString = job.get(U_INPUT_PATH);
+		System.out.println("Create Splits");
+		String vInputPathString = UVDecomposer.V_PATH;
+		String uInputPathString = UVDecomposer.U_PATH;
 		Path vInputPath = new Path(vInputPathString);
 		FileSystem fs = vInputPath.getFileSystem(job);
 		FileStatus vStatus = fs.getFileStatus(vInputPath);
 		FileStatus uStatus = fs.getFileStatus(new Path(uInputPathString));
 		
 		// Big file, create a split for each line
-		InputSplit[] uSplits = getBlockLineSplits(job, uStatus, UVDecomposer.D_DIMENSION);
+		InputSplit[] uSplits = getBlockLineSplits(job, uStatus, UVDecomposer.D_DIMENSION*UVDecomposer.NBR_MOVIES);
 		
 		// Smaller file - eventually don't need to create blocks here, instead use one big split!
-		InputSplit[] vSplits = getBlockLineSplits(job, vStatus, UVDecomposer.D_DIMENSION);
+		InputSplit[] vSplits = getBlockLineSplits(job, vStatus, UVDecomposer.D_DIMENSION*UVDecomposer.NBR_MOVIES);
 		
 		// Create new splits by computing the cartesian product of 
 		// all blocks from U with all blocks from V

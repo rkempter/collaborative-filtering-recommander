@@ -7,6 +7,8 @@ import org.apache.hadoop.mapred.RecordReader;
 import org.apache.hadoop.mapred.Reporter;
 import org.apache.hadoop.mapred.join.CompositeInputSplit;
 
+import ch.epfl.advanceddatabase.rkempter.UVDecomposer;
+
 public class MatrixInputRecordReader<K1, V1, K2, V2> implements RecordReader<MatrixInputValueWritable, MatrixInputValueWritable> {
 	
 	private RecordReader<K1, V1> vRecordReader = null;
@@ -28,17 +30,17 @@ public class MatrixInputRecordReader<K1, V1, K2, V2> implements RecordReader<Mat
 		UVTupleInputFormat uFIF = null;
 		
 		uFIF = new UVTupleInputFormat();
-		this.uRecordReader = (RecordReader<K2, V2>) uFIF.getRecordReader(split.get(0), conf, reporter);
+		uRecordReader = (RecordReader<K2, V2>) uFIF.getRecordReader(split.get(0), conf, reporter);
 		
 		// Create uRecordReader
-		this.vFIF = new UVTupleInputFormat();
-		this.uRecordReader = (RecordReader<K2, V2>) vFIF.getRecordReader(split.get(0), conf, reporter);
+		vFIF = new UVTupleInputFormat();
+		vRecordReader = (RecordReader<K1, V1>) vFIF.getRecordReader(split.get(0), conf, reporter);
 		
 		// Create key/value pairs for parsing
-		vKey = (K1) this.vRecordReader.createKey();
-		vValue = (V1) this.vRecordReader.createValue();
 		uKey = (K2) this.uRecordReader.createKey();
 		uValue = (V2) this.uRecordReader.createValue();
+		vKey = (K1) this.vRecordReader.createKey();
+		vValue = (V1) this.vRecordReader.createValue();
 		
 	}
 	
@@ -55,15 +57,37 @@ public class MatrixInputRecordReader<K1, V1, K2, V2> implements RecordReader<Mat
 	 */
 	public boolean next(MatrixInputValueWritable key, MatrixInputValueWritable value) throws IOException {
 		
-		if(uRecordReader.next(uKey, uValue) && vRecordReader.next(vKey, vValue)) {
-			// Send the element from the u matrix as the key
-			MatrixInputValueWritable uVal = (MatrixInputValueWritable) uValue;
-			key.setValues(uVal.getType(), uVal.getRow(), uVal.getColumn(), uVal.getValue());
-			// The element from the v matrix to the value
-			MatrixInputValueWritable vVal = (MatrixInputValueWritable) vValue;
-			value.setValues(vVal.getType(), vVal.getRow(), vVal.getColumn(), vVal.getValue());
-		} else {
-			allDone = true;
+		int i = 0, index = 0;;
+		boolean goToNextU = true, allDone = false;
+		MatrixInputValueWritable[] uValues = new MatrixInputValueWritable[UVDecomposer.D_DIMENSION];
+		
+		if(goToNextU) {
+			for(int j = 0; j < UVDecomposer.D_DIMENSION; j++) {
+				if(uRecordReader.next(uKey, uValue)) {
+					MatrixInputValueWritable uVal = (MatrixInputValueWritable) uValue;
+					uValues[j] = uVal;
+					goToNextU = false;
+				} else {
+					allDone = true;
+				}
+			}
+			
+			if(!allDone) {
+				do {
+					if(vRecordReader.next(vKey, vValue)) {
+						MatrixInputValueWritable vVal = (MatrixInputValueWritable) vValue;
+						value.setValues(vVal.getType(), vVal.getRow(), vVal.getColumn(), vVal.getValue());
+						key.setValues(uValues[i].getType(), uValues[i].getRow(), uValues[i].getColumn(), uValues[i].getValue());
+						i++;
+						if(i == UVDecomposer.D_DIMENSION) {
+							i = 0;
+						}
+					} else {
+						goToNextU = true;
+					}
+					
+				} while(!goToNextU);
+			}		
 		}
 		
 		return !allDone;
