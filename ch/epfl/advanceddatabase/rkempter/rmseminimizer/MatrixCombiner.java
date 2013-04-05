@@ -21,39 +21,35 @@ public class MatrixCombiner extends MapReduceBase implements Reducer<IntWritable
 		int matrixType = 0, column = 0;
 		int lastMatrixType = 0;
 		int lastColumn = 1;
-		boolean writeout = false, init = false;
+		boolean init = false;
 		
 		while (values.hasNext()) {
 			// replace ValueType with the real type of your value
-			MatrixUVValueWritable element = values.next(); // This does not work!!
-			//System.out.println("Combiner input: "+key+" "+element.getColumn());
+			
+			MatrixUVValueWritable element = (MatrixUVValueWritable) values.next();
 			matrixType = element.getType();
 			column = element.getColumn();
+			
 			if(!init) {
 				lastColumn = column;
 				init = true;
 			}
-			writeout = false;
 			if(lastColumn != column) {
+				if(key.get() == 1)
+					System.out.printf("Output: Row: %d Column: %d \n", key.get(), lastColumn);
 				MatrixUVValueWritable outValue = new MatrixUVValueWritable(lastMatrixType, lastColumn, total_x, total_k);
 				output.collect(key, outValue);
 				total_x = 0;
 				total_k = 0;
-				writeout = true;
-				System.out.println("Combiner output: Row: "+key.get()+" column: "+lastColumn);
 			}
 			lastColumn = column;
 			lastMatrixType = matrixType;
 			
-			//if(matrixType == UVDecomposer.MATRIX_U ||  matrixType == UVDecomposer.MATRIX_V) {
-				total_x += element.getValue_x();
-				total_k += element.getValue_k();
-			//}
+			total_x += element.getValue_x();
+			total_k += element.getValue_k();
 		}
-		if(!writeout) {
-			MatrixUVValueWritable outValue = new MatrixUVValueWritable(matrixType, column, total_x, total_k);
-			output.collect(key, outValue);
-		}
+		MatrixUVValueWritable outValue = new MatrixUVValueWritable(matrixType, column, total_x, total_k);
+		output.collect(key, outValue);
 	}
 
 }

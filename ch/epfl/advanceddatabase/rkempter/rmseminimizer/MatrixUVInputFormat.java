@@ -1,10 +1,13 @@
 package ch.epfl.advanceddatabase.rkempter.rmseminimizer;
+import java.io.DataInputStream;
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.util.ArrayList;
 
 import ch.epfl.advanceddatabase.rkempter.initialization.TupleValueWritable;
 import ch.epfl.advanceddatabase.rkempter.UVDecomposer;
 
+import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -16,6 +19,7 @@ import org.apache.hadoop.mapred.JobConf;
 import org.apache.hadoop.mapred.RecordReader;
 import org.apache.hadoop.mapred.Reporter;
 import org.apache.hadoop.mapred.join.CompositeInputSplit;
+import org.apache.hadoop.util.bloom.BloomFilter;
 
 
 public class MatrixUVInputFormat extends FileInputFormat<MatrixInputValueWritable, MatrixInputValueWritable> {
@@ -24,6 +28,7 @@ public class MatrixUVInputFormat extends FileInputFormat<MatrixInputValueWritabl
 	public static final String V_INPUT_FORMAT = "matrix.v.inputformat";
 	public static final String U_INPUT_PATH = "matrix.u.path";
 	public static final String V_INPUT_PATH = "matrix.v.path";
+	private BloomFilter filter = new BloomFilter();
 	
 	public static void setUInputInfo(JobConf job, Class<? extends FileInputFormat> inputFormat, String inputPath) {
 		job.set(U_INPUT_FORMAT, inputFormat.getCanonicalName());
@@ -43,17 +48,23 @@ public class MatrixUVInputFormat extends FileInputFormat<MatrixInputValueWritabl
 		System.out.println("Create Splits");
 		String vInputPathString = UVDecomposer.V_PATH;
 		String uInputPathString = UVDecomposer.U_PATH;
+		String bloomFilterInputPathString = "/std44/output/B/part-00000";
+		
 		Path vInputPath = new Path(vInputPathString);
 		FileSystem fs = vInputPath.getFileSystem(job);
 		FileStatus vStatus = fs.getFileStatus(vInputPath);
 		FileStatus uStatus = fs.getFileStatus(new Path(uInputPathString));
 		
+		// Create a bloom filter
+		
 		// Big file, create a split for each line
+		
 		InputSplit[] uSplits = getBlockLineSplits(job, uStatus, UVDecomposer.D_DIMENSION*UVDecomposer.U_INPUT_BLOCK_SIZE);
+		System.out.println("Number of uSplits: "+uSplits.length);
 		
 		// Smaller file - eventually don't need to create blocks here, instead use one big split!
 		InputSplit[] vSplits = getBlockLineSplits(job, vStatus, UVDecomposer.D_DIMENSION*UVDecomposer.BLOCK_SIZE);
-		
+		System.out.println("Number of vSplits: "+vSplits.length);
 		// Create new splits by computing the cartesian product of 
 		// all blocks from U with all blocks from V
 		CompositeInputSplit[] resultSplits = new CompositeInputSplit[uSplits.length * vSplits.length];

@@ -51,7 +51,7 @@ public class MatrixUVReducer extends MapReduceBase implements
 //				if(type == 'V') {
 //					matrixType = 'V';
 //				}
-				//System.out.println("Matrix UV element: "+key+" / "+value.getColumn()+" "+value.getValue_k()+" "+value.getValue_x());
+				
 				
 				// In case, values were computed on different mappers -> combiner didn't merge them to one element.
 				if(!xVal.containsKey(value.getColumn())) {
@@ -60,15 +60,26 @@ public class MatrixUVReducer extends MapReduceBase implements
 					float newValue = xVal.get(value.getColumn()) + value.getValue_x();
 					xVal.put(value.getColumn(), newValue);
 				}
-				xSum += value.getValue_x();
 				if(!kVal.containsKey(value.getColumn())) {
 					kVal.put(value.getColumn(), value.getValue_k());
 				} else {
 					float newValue = kVal.get(value.getColumn()) + value.getValue_k();
 					kVal.put(value.getColumn(), newValue);
 				}
-				kSum += value.getValue_k();
 			}
+		}
+		
+		// Building the sum
+		for(Map.Entry<Integer, Float> entry : mVal.entrySet()) {
+			int index = entry.getKey();
+			if(!xVal.containsKey(index)) {
+				System.out.println("No x value available for "+key.get()+" / "+index);
+			}
+			if(!kVal.containsKey(index)) {
+				System.out.println("No x value available for "+key.get()+" / "+index);
+			}
+			xSum += xVal.get(index);
+			kSum += kVal.get(index);
 		}
 		
 		// Compute X

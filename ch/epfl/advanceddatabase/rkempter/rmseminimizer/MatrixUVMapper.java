@@ -31,16 +31,13 @@ public class MatrixUVMapper extends MapReduceBase implements Mapper<MatrixInputV
 		float uValue = uElement.getValue();
 		float vValue = vElement.getValue();
 		float result_x = 0, result_k = 0;
-		System.out.println("uElement: "+uElement.getRow()+" "+uElement.getColumn()+" "+uElement.getValue());
-		System.out.println("vElement: "+vElement.getRow()+" "+vElement.getColumn()+" "+vElement.getValue());
 		
 		if(column != xPos) {
 			result_k = uValue * vValue;
 		} else {
 			result_x = vValue;
 		}
-		
-		MatrixUVValueWritable outValue = new MatrixUVValueWritable(matrixUOrV, column, result_x, result_k);
+		MatrixUVValueWritable outValue = new MatrixUVValueWritable(0, column, result_x, result_k);
 		IntWritable outKey = new IntWritable(row);
 		
 		output.collect(outKey, outValue);
