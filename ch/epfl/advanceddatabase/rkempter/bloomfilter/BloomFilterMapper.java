@@ -14,9 +14,10 @@ import org.apache.hadoop.util.hash.Hash;
 
 import ch.epfl.advanceddatabase.rkempter.UVDecomposer;
 import ch.epfl.advanceddatabase.rkempter.initialization.TupleValueWritable;
+import ch.epfl.advanceddatabase.rkempter.rmseminimizer.MatrixInputValueWritable;
 import ch.epfl.advanceddatabase.rkempter.rmseminimizer.MatrixUVValueWritable;
 
-public class BloomFilterMapper extends MapReduceBase implements Mapper<IntWritable, TupleValueWritable, IntWritable, BloomFilter> {
+public class BloomFilterMapper extends MapReduceBase implements Mapper<IntWritable, MatrixInputValueWritable, IntWritable, MatrixInputValueWritable> {
 
 	private int vectorSize;
 	private int nbrHash;
@@ -29,22 +30,17 @@ public class BloomFilterMapper extends MapReduceBase implements Mapper<IntWritab
 	}
 	
 	// Identity Mapper
-	public void map(IntWritable key, TupleValueWritable value,
-			OutputCollector<IntWritable, BloomFilter> output, Reporter reporter) throws IOException {
+	public void map(IntWritable key, MatrixInputValueWritable value,
+			OutputCollector<IntWritable, MatrixInputValueWritable> output, Reporter reporter) throws IOException {
 		
-		BloomFilter filter = new BloomFilter(vectorSize, nbrHash, Hash.MURMUR_HASH);
-		int column = value.getIndex();
-		int row = key.get();
+		// create key
+		int newRow = (int) key.get() / UVDecomposer.U_INPUT_BLOCK_SIZE;
+		int newColumn = (int) value.getColumn() / UVDecomposer.BLOCK_SIZE;
 		
-		int index = ((row-1) * UVDecomposer.NBR_MOVIES + column);
-		byte[] keyIndex = Integer.toString(index).getBytes();
-		Key newKey = new Key(keyIndex);
-		filter.add(newKey);
+		int columnNbr = (int) Math.ceil(UVDecomposer.NBR_MOVIES / UVDecomposer.BLOCK_SIZE);
+		int newKey = newRow * columnNbr + newColumn;
 		
-		IntWritable outKey = new IntWritable(1);
-		
-		output.collect(outKey, filter);
-		 
+		output.collect(new IntWritable(newKey), value);
 	}
 
 }

@@ -25,9 +25,10 @@ public class UVDecomposer {
 	public static final int NBR_MOVIES = 100;
 	public static final int NBR_USERS = 5000;
 	public static final int D_DIMENSION = 10;
-	public static final int BLOCK_SIZE = 5000;
+	public static final int BLOCK_SIZE = 20;
 	public static final int COUNTER_MULTIPLICATOR = 10000000;
-	public static final int U_INPUT_BLOCK_SIZE = 6000;
+	public static final int U_INPUT_BLOCK_SIZE = 1000;
+	public static final int V_INPUT_BLOCK_SIZE = 1000;
 	
 	public static final int MATRIX_U = 1;
 	public static final int MATRIX_V = 2;
@@ -43,8 +44,8 @@ public class UVDecomposer {
 	public static final String MATRIX_TYPE = "decomposer.matrix.type";
 	public static final String NBR_HASH = "decomposer.hashnbr";
 	public static final String VECTOR_SIZE = "decomposer.vecto.size";
-	public static final String U_PATH = "/std44/output/U_i/umatrix.txt";
-	public static final String V_PATH = "/std44/output/V_i/vmatrix.txt";
+	public static final String U_PATH = "/std44/output/U_i/";
+	public static final String V_PATH = "/std44/output/V_i/";
 	public static final String M_PATH = "/std44/output/M/";
 	public static final String I_PATH = "/std44/output/I/";
 	public static final String BLOOMFILTER_PATH = "/std44/output/B/";
@@ -70,13 +71,14 @@ public class UVDecomposer {
 		output_path = args[1];
 		createUVMatrixes();
 		JobClient client = new JobClient();
-		//JobConf initConf = getNormalizationJob();
-		JobConf bloomFilterConf = getBloomFilterJob();
+		JobConf initConf = getNormalizationJob();
+		runJob(initConf, client);
+		//JobConf bloomFilterConf = getBloomFilterJob();
 		//runJob(bloomFilterConf, client);
 		//if(runJob(initConf, client) && runJob(bloomFilterConf, client)) {
 			System.out.println("Initconf & BloomFilterConf good.");
 			JobConf uvConf = getUVJob(MATRIX_U, 2);
-			runJob(uvConf, client);
+			//runJob(uvConf, client);
 		//}
 		
 	}
@@ -175,9 +177,9 @@ public class UVDecomposer {
 		FileInputFormat.addInputPath(conf, new Path(input_path));
 		FileOutputFormat.setOutputPath(conf, new Path(outputPath));
 		
-		conf.setMapperClass(BloomFilterMapper.class);
-		conf.setCombinerClass(BloomFilterReducer.class);
-		conf.setReducerClass(BloomFilterReducer.class);
+//		conf.setMapperClass(BloomFilterMapper.class);
+//		conf.setCombinerClass(BloomFilterReducer.class);
+//		conf.setReducerClass(BloomFilterReducer.class);
 		
 		return conf;
 	}
@@ -217,42 +219,54 @@ public class UVDecomposer {
 				
 		try {
 			// Create U matrix
-			createMatrix(conf, uPath, NBR_USERS, "U");
+			createMatrix(conf, NBR_USERS, MATRIX_U);
 			// Create V matrix - @Todo: Eventually need to write custom method to store column wise!!
-			createMatrix(conf, vPath, NBR_MOVIES, "V");
+			createMatrix(conf, NBR_MOVIES, MATRIX_V);
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
 	}
 	
-	
-	private static void createMatrix(JobConf conf, Path path, int index, String type) throws IOException {
+	private static void createMatrix(JobConf conf, int index, int type) throws IOException {
 		Random generator = new Random();
 		
 		FileSystem fs = FileSystem.get(conf);
 		
-		if(fs.exists(path)) {
-			System.out.println("Matrix File already exists");
-			return;
-		}
+		String outputTuple = "<%s,%d,%d,%f>\n";
+		int blocks = 0, blockSize = 0;
+		String startPath;
+		if(type == MATRIX_V) {
+			blocks = (int) Math.ceil((float) NBR_MOVIES / V_INPUT_BLOCK_SIZE);
+			blockSize = V_INPUT_BLOCK_SIZE;
+			startPath = V_PATH;
+		} else {
+			blocks = (int) Math.ceil((float) NBR_USERS / U_INPUT_BLOCK_SIZE);
+			blockSize = U_INPUT_BLOCK_SIZE;
+			startPath = U_PATH;
+		}	
 		
-		FSDataOutputStream out = fs.create(path);
+		System.out.println("Blocks: "+blocks);
 		
 		// generate matrix
-		for(int i = 1; i <= index; i++) {
-			for(int j = 1; j <= D_DIMENSION; j++) {
-				float value = (float) generator.nextGaussian() / 10;
-				String output;
-				if(type == "U") {
-					output = String.format("<%s,%d,%d,%f>\n", type, i, j, value);
-				} else {
-					output = String.format("<%s,%d,%d,%f>\n", type, j, i, value);
+		for(int fileName = 0; fileName < blocks; fileName++) {
+			Path filePath = new Path(startPath+Integer.toString(fileName));
+			FSDataOutputStream out = fs.create(filePath);
+			
+			for(int i = 1; i <= blockSize; i++) {
+				for(int j = 1; j <= D_DIMENSION; j++) {
+					float value = (float) generator.nextGaussian() / 10;
+					String output;
+					if(type == MATRIX_U) {
+						output = String.format(outputTuple, "U", i, j, value);
+					} else {
+						output = String.format(outputTuple, "V", j, i, value);
+					}
+					out.writeBytes(output);
 				}
-				out.writeBytes(output);
 			}
+			out.close();
 		}
 		
-		out.close();
 		fs.close();
 	}
 	

@@ -7,30 +7,35 @@ import org.apache.hadoop.io.Writable;
 
 
 public class TupleValueWritable implements Writable{
-	private int index;
+	private int row;
+	private int column;
 	private float grade;
 	
-	public TupleValueWritable(int index, float grade)
+	public TupleValueWritable(int row, int column, float grade)
 	{
-		this.index = index;
+		this.row = row;
+		this.column = column;
 		this.grade = grade;
 	}
 
 	public TupleValueWritable()
 	{
-		this.index = 0;
+		this.row = 0;
+		this.column = 0;
 		this.grade = 0;
 	}
 	
 	@Override
 	public void write(DataOutput out) throws IOException {
-		out.writeInt(index);
+		out.writeInt(row);
+		out.writeInt(column);
 		out.writeFloat(grade);
 	}
 	
 	@Override
 	public void readFields(DataInput in) throws IOException {
-		index = in.readInt();
+		row = in.readInt();
+		column = in.readInt();
 		grade = in.readFloat();
 		// read datestring?
 	}
@@ -39,20 +44,29 @@ public class TupleValueWritable implements Writable{
 		return grade;
 	}
 	
-	public int getIndex() {
-		return index;
+	public int getColumn() {
+		return column;
+	}
+	
+	public int getRow() {
+		return row;
 	}
 	
 	public void setGrade(float grade){
 		this.grade = grade;
 	}
 	
-	public void setIndex(int index) {
-		this.index = index;
+	public void setColumn(int column) {
+		this.column = column;
+	}
+	
+	public void setRow(int row) {
+		this.row = row;
 	}
 	
 	public String toString() {
-		return Integer.toString(index) + ", "
+		return Integer.toString(row) + ", "
+				+ Integer.toString(column) + ", "
 				+ Float.toString(grade);
 	}
 }

@@ -37,18 +37,20 @@ class InitTupleRecordReader implements RecordReader<IntWritable, TupleValueWrita
     }
 
     // try to parse floating point components of value
-    int index;
+    int row, column;
     float grade;
     try {
-      index = Integer.parseInt(pieces[1].trim());
-      grade = Float.parseFloat(pieces[2].trim());
+    	row = Integer.parseInt(pieces[0].trim());
+    	column = Integer.parseInt(pieces[1].trim());
+    	grade = Float.parseFloat(pieces[2].trim());
     } catch (NumberFormatException nfe) {
       throw new IOException("Error parsing values in record");
     }
 
     key.set(Integer.parseInt(pieces[0].trim())); // userID is the output key.
 
-    value.setIndex(index);
+    value.setRow(row);
+    value.setColumn(column);
     value.setGrade(grade);
 
     return true;

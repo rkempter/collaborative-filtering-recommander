@@ -7,40 +7,26 @@ import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.IntWritable;
+import org.apache.hadoop.io.NullWritable;
 import org.apache.hadoop.mapred.FileOutputFormat;
 import org.apache.hadoop.mapred.JobConf;
 import org.apache.hadoop.mapred.RecordWriter;
 import org.apache.hadoop.mapred.Reporter;
+import org.apache.hadoop.mapred.lib.MultipleTextOutputFormat;
 import org.apache.hadoop.util.Progressable;
 
+import ch.epfl.advanceddatabase.rkempter.UVDecomposer;
 
-public class InitializationOutputFormat<K, V> extends FileOutputFormat<IntWritable, TupleValueWritable> {
+
+public class InitializationOutputFormat<K, V> extends MultipleTextOutputFormat<NullWritable, TupleValueWritable> {
 	
-	protected static class InitializationElementWriter<K, V> implements RecordWriter<IntWritable, TupleValueWritable> {
+	protected String generateFileNameForKeyValue(NullWritable key, TupleValueWritable value, String name) {
+		int newRow = (int) (value.getRow()-1) / UVDecomposer.U_INPUT_BLOCK_SIZE;
+		System.out.println("Row: "+value.getRow());
+		int newColumn = (int) (value.getColumn()-1) / UVDecomposer.BLOCK_SIZE;
+		int columnNbr = (int) Math.ceil(UVDecomposer.NBR_MOVIES / UVDecomposer.BLOCK_SIZE);
+		int newKey = newRow * columnNbr + newColumn;
 		
-		private DataOutputStream out;
-		
-		public InitializationElementWriter(DataOutputStream out) throws IOException {
-			this.out = out;
-		}
-		
-		public synchronized void write(IntWritable key, TupleValueWritable value) throws IOException {
-		    String output = String.format("%d,%d,%f\n", key.get(), value.getIndex(), value.getGrade());
-		    out.writeBytes(output);
-		}
-
-		public synchronized void close(Reporter reporter) throws IOException {
-			out.close();
-		}
+		return Integer.toString(newKey); 
 	}
-	
-	
-	public RecordWriter<IntWritable, TupleValueWritable> getRecordWriter(FileSystem ignored, JobConf conf,
-			String name, Progressable progress) throws IOException {
-		Path file = FileOutputFormat.getTaskOutputPath(conf, name);
-		FileSystem fs = file.getFileSystem(conf);
-		FSDataOutputStream fileOut = fs.create(file, progress);
-		return new InitializationElementWriter<IntWritable, TupleValueWritable>(fileOut);
-	}
-
 }

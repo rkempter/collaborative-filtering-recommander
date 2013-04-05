@@ -5,16 +5,19 @@ import java.util.ArrayList;
 import java.util.Iterator;
 
 import org.apache.hadoop.io.IntWritable;
+import org.apache.hadoop.io.NullWritable;
 import org.apache.hadoop.mapred.MapReduceBase;
 import org.apache.hadoop.mapred.OutputCollector;
 import org.apache.hadoop.mapred.Reducer;
 import org.apache.hadoop.mapred.Reporter;
 
-public class InitializationReducer extends MapReduceBase implements Reducer<IntWritable, TupleValueWritable, IntWritable, TupleValueWritable>
+import ch.epfl.advanceddatabase.rkempter.UVDecomposer;
+
+public class InitializationReducer extends MapReduceBase implements Reducer<IntWritable, TupleValueWritable, NullWritable, TupleValueWritable>
 {
 
 	public void reduce(IntWritable key, Iterator<TupleValueWritable> values,
-			OutputCollector<IntWritable, TupleValueWritable> output, Reporter reporter)
+			OutputCollector<NullWritable, TupleValueWritable> output, Reporter reporter)
 			throws IOException {
 		
 			int sum = 0;
@@ -25,7 +28,7 @@ public class InitializationReducer extends MapReduceBase implements Reducer<IntW
 			while (values.hasNext()) {
 				// Hate this!
 				TupleValueWritable tv = values.next();
-				TupleValueWritable tupleValue = new TupleValueWritable(tv.getIndex(), tv.getGrade());
+				TupleValueWritable tupleValue = new TupleValueWritable(tv.getRow(), tv.getColumn(), tv.getGrade());
 				tupleValueList.add(tupleValue);
 				sum += tv.getGrade();
 				counter++;
@@ -38,7 +41,8 @@ public class InitializationReducer extends MapReduceBase implements Reducer<IntW
 				TupleValueWritable value = tupleValueList.get(i);
 				float grade = value.getGrade() - avg;
 				value.setGrade(grade);
-				output.collect(key, value);
+				
+				output.collect(NullWritable.get(), value);
 			}
 			
 			// Need to write U and V
