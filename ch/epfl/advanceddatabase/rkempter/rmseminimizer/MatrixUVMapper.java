@@ -11,7 +11,7 @@ import org.apache.hadoop.mapred.OutputCollector;
 import org.apache.hadoop.mapred.Reporter;
 
 
-public class MatrixUVMapper extends MapReduceBase implements Mapper<MatrixInputValueWritable, MatrixInputValueWritable, IntWritable, MatrixUVValueWritable> {
+public class MatrixUVMapper extends MapReduceBase implements Mapper<IntWritable, MatrixUVValueWritable, IntWritable, MatrixUVValueWritable> {
 	
 	private int xPos;
 	private int matrixUOrV;
@@ -23,23 +23,10 @@ public class MatrixUVMapper extends MapReduceBase implements Mapper<MatrixInputV
 		//matrixUOrV = conf.get(UVDecomposer.MATRIX_TYPE); 
 	}
 	
-	public void map(MatrixInputValueWritable uElement, MatrixInputValueWritable vElement,
+	public void map(IntWritable key, MatrixUVValueWritable element,
 			OutputCollector<IntWritable, MatrixUVValueWritable> output, Reporter reporter) throws IOException {
-
-		int row = uElement.getRow();
-		int column = vElement.getColumn();
-		float uValue = uElement.getValue();
-		float vValue = vElement.getValue();
-		float result_x = 0, result_k = 0;
 		
-		if(column != xPos) {
-			result_k = uValue * vValue;
-		} else {
-			result_x = vValue;
-		}
-		MatrixUVValueWritable outValue = new MatrixUVValueWritable(0, column, result_x, result_k);
-		IntWritable outKey = new IntWritable(row);
-		
-		output.collect(outKey, outValue);
+		System.out.println("Row: "+key.get()+" Column: "+element.getColumn()+" Value: "+element.getValue_k());
+		output.collect(key, element);
 	}
 }

@@ -11,6 +11,7 @@ import org.apache.hadoop.mapred.Reducer;
 import org.apache.hadoop.mapred.Reporter;
 import org.apache.hadoop.util.bloom.BloomFilter;
 import org.apache.hadoop.util.bloom.Key;
+import org.apache.hadoop.util.hash.Hash;
 import org.apache.hadoop.io.NullWritable;
 
 public class BloomFilterReducer extends MapReduceBase implements Reducer<IntWritable,  BloomFilter, IntWritable, BloomFilter> {
@@ -19,22 +20,15 @@ public class BloomFilterReducer extends MapReduceBase implements Reducer<IntWrit
 			OutputCollector<IntWritable, BloomFilter> output, Reporter reporter) throws IOException {
 		// replace KeyType with the real type of your key
 		boolean init = false;
-		BloomFilter filter = new BloomFilter();
+		BloomFilter filter = new BloomFilter(91058, 3, Hash.MURMUR_HASH);
 		while (values.hasNext()) {
-			if(!init) {
-				init = true;
-				filter = (BloomFilter) values.next();
-			} else {
-				BloomFilter newFilter = (BloomFilter) values.next();
-				filter.or(newFilter);
-			}
-			System.out.println("Filter: "+filter.toString());
+			filter.or(values.next());
 		}
-		
+			
 		if(filter.membershipTest(new Key(Integer.toString(55299).getBytes()))) {
 			System.out.println("55299 inside");
 		}
-		
+		System.out.println("Filter at end: "+filter.toString());
 		output.collect(key, filter);
 	}
 

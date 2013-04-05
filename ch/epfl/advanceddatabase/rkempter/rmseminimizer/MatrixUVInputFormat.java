@@ -22,7 +22,7 @@ import org.apache.hadoop.mapred.join.CompositeInputSplit;
 import org.apache.hadoop.util.bloom.BloomFilter;
 
 
-public class MatrixUVInputFormat extends FileInputFormat<MatrixInputValueWritable, MatrixInputValueWritable> {
+public class MatrixUVInputFormat extends FileInputFormat<IntWritable, MatrixUVValueWritable> {
 	
 	public static final String U_INPUT_FORMAT = "matrix.u.inputformat";
 	public static final String V_INPUT_FORMAT = "matrix.v.inputformat";
@@ -97,7 +97,7 @@ public class MatrixUVInputFormat extends FileInputFormat<MatrixInputValueWritabl
 		return splits.toArray(new FileSplit[splits.size()]);
 	}
 
-	public RecordReader<MatrixInputValueWritable, MatrixInputValueWritable> getRecordReader (InputSplit input, JobConf job, Reporter reporter) 
+	public RecordReader<IntWritable, MatrixUVValueWritable> getRecordReader (InputSplit input, JobConf job, Reporter reporter) 
 			throws IOException {
 
 			return new MatrixInputRecordReader<IntWritable, MatrixInputValueWritable, IntWritable, MatrixInputValueWritable>((CompositeInputSplit) input, job, reporter);

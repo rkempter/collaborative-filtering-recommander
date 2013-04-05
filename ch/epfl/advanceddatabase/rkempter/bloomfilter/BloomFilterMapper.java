@@ -41,9 +41,6 @@ public class BloomFilterMapper extends MapReduceBase implements Mapper<IntWritab
 		Key newKey = new Key(keyIndex);
 		filter.add(newKey);
 		
-		if(filter.membershipTest(newKey))
-			System.out.println("Key "+index+" Row: "+row+" Column "+column);
-		
 		IntWritable outKey = new IntWritable(1);
 		
 		output.collect(outKey, filter);

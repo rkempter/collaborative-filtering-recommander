@@ -70,13 +70,14 @@ public class UVDecomposer {
 		output_path = args[1];
 		createUVMatrixes();
 		JobClient client = new JobClient();
-		JobConf initConf = getNormalizationJob();
+		//JobConf initConf = getNormalizationJob();
 		JobConf bloomFilterConf = getBloomFilterJob();
-		if(runJob(initConf, client) && runJob(bloomFilterConf, client)) {
+		//runJob(bloomFilterConf, client);
+		//if(runJob(initConf, client) && runJob(bloomFilterConf, client)) {
 			System.out.println("Initconf & BloomFilterConf good.");
 			JobConf uvConf = getUVJob(MATRIX_U, 2);
 			runJob(uvConf, client);
-		}
+		//}
 		
 	}
 	
@@ -124,7 +125,7 @@ public class UVDecomposer {
 		uvConf.setOutputKeyClass(IntWritable.class);
 		uvConf.setMapOutputValueClass(MatrixUVValueWritable.class);
 		uvConf.setOutputValueClass(MatrixInputValueWritable.class);
-		uvConf.setCombinerClass(MatrixCombiner.class);
+		//uvConf.setCombinerClass(MatrixCombiner.class);
 		
 //		uvConf.setNumMapTasks(110);
 //		uvConf.setNumReduceTasks(110);

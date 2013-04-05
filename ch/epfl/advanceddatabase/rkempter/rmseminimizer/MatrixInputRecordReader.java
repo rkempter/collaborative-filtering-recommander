@@ -5,6 +5,7 @@ import java.io.IOException;
 
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.io.IntWritable;
 import org.apache.hadoop.mapred.InputSplit;
 import org.apache.hadoop.mapred.JobConf;
 import org.apache.hadoop.mapred.RecordReader;
@@ -15,7 +16,7 @@ import org.apache.hadoop.util.bloom.Key;
 
 import ch.epfl.advanceddatabase.rkempter.UVDecomposer;
 
-public class MatrixInputRecordReader<K1, V1, K2, V2> implements RecordReader<MatrixInputValueWritable, MatrixInputValueWritable> {
+public class MatrixInputRecordReader<K1, V1, K2, V2> implements RecordReader<IntWritable, MatrixUVValueWritable> {
 	
 	private RecordReader<K1, V1> vRecordReader = null;
 	private RecordReader<K2, V2> uRecordReader = null;
@@ -85,71 +86,79 @@ public class MatrixInputRecordReader<K1, V1, K2, V2> implements RecordReader<Mat
 	 * @return
 	 * @throws IOException
 	 */
-	public boolean next(MatrixInputValueWritable key, MatrixInputValueWritable value) throws IOException {
+	public boolean next(IntWritable key, MatrixUVValueWritable value) throws IOException {
 		boolean sent = false;
+		float total_x = 0;
+		float total_k = 0;
 		
 		while(!sent) {
-			if(!vRead) {
-				if(vRecordReader.next(vKey, vValue)) {
-					MatrixInputValueWritable vVal = (MatrixInputValueWritable) vValue;
-					columnCounter = vVal.getColumn();
-					vValues[vIndex] = new MatrixInputValueWritable(vVal.getType(), vVal.getRow(), vVal.getColumn(), vVal.getValue());
-				} else {
-					setMaxColumn = vIndex;
+		
+		// Read 10 elements out
+			
+			for(int i = 0; i < UVDecomposer.D_DIMENSION; i++) {
+				if(!vRead) {
+					if(vRecordReader.next(vKey, vValue)) {
+						MatrixInputValueWritable vVal = (MatrixInputValueWritable) vValue;
+						vValues[vIndex] = new MatrixInputValueWritable(vVal.getType(), vVal.getRow(), vVal.getColumn(), vVal.getValue());
+					} else {
+						setMaxColumn = vIndex;
+						vIndex = 0;
+						uIndex = 0;
+						uRead = false;
+						vRead = true;
+					}
+				}
+				
+				if(!uRead) {
+					if(uRecordReader.next(uKey, uValue)) {
+						MatrixInputValueWritable uVal = (MatrixInputValueWritable) uValue;
+						rowCounter = uVal.getRow();
+						uValues[uIndex] = new MatrixInputValueWritable(uVal.getType(), uVal.getRow(), uVal.getColumn(), uVal.getValue());
+					} else {
+						return false;
+					}
+				}
+				columnCounter = vValues[vIndex].getColumn();
+				int indexToTest = (rowCounter-1) * UVDecomposer.NBR_MOVIES + columnCounter;
+				byte[] indexToTestBytes = Integer.toString(indexToTest).getBytes();
+				Key indexKey = new Key(indexToTestBytes);
+				if(this.filter.membershipTest(indexKey)) {
+					System.out.println("Key that came in: "+indexKey);
+					total_k = vValues[vIndex].getValue() * uValues[uIndex].getValue();
+					sent = true;
+				}
+						
+				uIndex++;
+				vIndex++;
+				
+				if(uIndex == UVDecomposer.D_DIMENSION) {
+					uIndex = 0;
+					uRead = true;
+				}
+				
+				if(vIndex == setMaxColumn) {
 					vIndex = 0;
 					uIndex = 0;
 					uRead = false;
 					vRead = true;
 				}
-			}
-			
-			if(!uRead) {
-				if(uRecordReader.next(uKey, uValue)) {
-					MatrixInputValueWritable uVal = (MatrixInputValueWritable) uValue;
-					rowCounter = uVal.getRow();
-					uValues[uIndex] = new MatrixInputValueWritable(uVal.getType(), uVal.getRow(), uVal.getColumn(), uVal.getValue());
-				} else {
-					return false;
-				}
-			}
-			
-			int indexToTest = (rowCounter-1) * UVDecomposer.NBR_MOVIES + columnCounter;
-			byte[] indexToTestBytes = Integer.toString(indexToTest).getBytes();
-			Key indexKey = new Key(indexToTestBytes);
-			if(this.filter.membershipTest(indexKey)) {
-				System.out.println("Filter passed!!!!");
-				value.setValues(vValues[vIndex].getType(), vValues[vIndex].getRow(), vValues[vIndex].getColumn(), vValues[vIndex].getValue());
-				key.setValues(uValues[uIndex].getType(), uValues[uIndex].getRow(), uValues[uIndex].getColumn(), uValues[uIndex].getValue());
-				sent = true;
-			}	
-			uIndex++;
-			vIndex++;
-			
-			
-			if(uIndex == UVDecomposer.D_DIMENSION) {
-				uIndex = 0;
-				uRead = true;
-			}
-			
-			if(vIndex == setMaxColumn) {
-				vIndex = 0;
-				uIndex = 0;
-				uRead = false;
-				vRead = true;
+				
 			}
 		}
-	
+		key.set(rowCounter);
+		value.setValues(1, columnCounter, total_x, total_k);
+		
 		return true;
 	}
 
 	@Override
-	public MatrixInputValueWritable createKey() {
-		return new MatrixInputValueWritable();
+	public IntWritable createKey() {
+		return new IntWritable();
 	}
 
 	@Override
-	public MatrixInputValueWritable createValue() {
-		return new MatrixInputValueWritable();
+	public MatrixUVValueWritable createValue() {
+		return new MatrixUVValueWritable();
 	}
 
 	@Override
