@@ -10,7 +10,7 @@ import org.apache.hadoop.mapred.LineRecordReader;
 import org.apache.hadoop.mapred.RecordReader;
 
 
-class InitTupleRecordReader implements RecordReader<IntWritable, TupleValueWritable> {
+public class InitTupleRecordReader implements RecordReader<IntWritable, TupleValueWritable> {
 
   private LineRecordReader lineReader;
   private LongWritable lineKey;
@@ -37,18 +37,21 @@ class InitTupleRecordReader implements RecordReader<IntWritable, TupleValueWrita
     }
 
     // try to parse floating point components of value
-    int index;
+    int row, column;
     float grade;
+    // initialize the values
     try {
-      index = Integer.parseInt(pieces[1].trim());
-      grade = Float.parseFloat(pieces[2].trim());
+    	row = Integer.parseInt(pieces[0].trim());
+    	column = Integer.parseInt(pieces[1].trim());
+    	grade = Float.parseFloat(pieces[2].trim());
     } catch (NumberFormatException nfe) {
       throw new IOException("Error parsing values in record");
     }
 
     key.set(Integer.parseInt(pieces[0].trim())); // userID is the output key.
 
-    value.setIndex(index);
+    value.setRow(row);
+    value.setColumn(column);
     value.setGrade(grade);
 
     return true;

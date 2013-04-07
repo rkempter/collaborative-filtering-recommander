@@ -2,6 +2,8 @@ package ch.epfl.advanceddatabase.rkempter.rmseminimizer;
 
 import java.io.IOException;
 
+import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.IntWritable;
 import org.apache.hadoop.mapred.FileInputFormat;
 import org.apache.hadoop.mapred.FileSplit;
@@ -16,6 +18,11 @@ public class UVTupleInputFormat extends FileInputFormat<IntWritable, MatrixInput
 			throws IOException {
 		
 		reporter.setStatus(input.toString());
-		return new UVTupleRecordReader(job, (FileSplit)input);
+		return new UVTupleRecordReader(job, (FileSplit) input);
+	}
+	
+	// Files are equal to a split
+	protected boolean isSplitable(FileSystem fs, Path filename) {
+		return false; 
 	}
 }

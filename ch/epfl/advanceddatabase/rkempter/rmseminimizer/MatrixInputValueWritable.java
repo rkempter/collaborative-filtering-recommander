@@ -3,10 +3,15 @@ import java.io.DataInput;
 import java.io.DataOutput;
 import java.io.IOException;
 
-import org.apache.hadoop.io.WritableComparable;
+import org.apache.hadoop.io.Writable;
 
-
-public class MatrixInputValueWritable implements WritableComparable{
+/**
+ * Serves as a container to stock U, V values read from the
+ * corresponding files.
+ * @author rkempter
+ *
+ */
+public class MatrixInputValueWritable implements Writable{
 	
 	private char type;
 	private int row;
@@ -78,11 +83,8 @@ public class MatrixInputValueWritable implements WritableComparable{
 		this.value = value;
 	}
 
-	@Override
-	// Never used at reducer
-	public int compareTo(Object o) {
-		// TODO Auto-generated method stub
-		return 0;
+	public String toString() {
+		return String.format("<%c, %d, %d, %f>\n", this.type, this.row, this.column, this.value);
 	}
 
 }
