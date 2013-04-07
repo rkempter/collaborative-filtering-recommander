@@ -8,6 +8,13 @@ import org.apache.hadoop.io.FloatWritable;
 import org.apache.hadoop.io.IntWritable;
 import org.apache.hadoop.io.Writable;
 
+/**
+ * Element containing an element from the M-Matrix and the
+ * corresponding elements 10 elements from the U & V matrices
+ * 
+ * @author rkempter
+ *
+ */
 public class InputWritable implements Writable{
 	private IntWritable index;
 	private FloatWritable mElement;
@@ -15,11 +22,22 @@ public class InputWritable implements Writable{
 	private FloatArrayWritable uElements;
 	
 	public InputWritable(int index, float mElement, Float[] uElements, Float[] vElements) {
+		this.index = new IntWritable();
+		this.mElement = new FloatWritable();
+		this.vElements = new FloatArrayWritable();
+		this.uElements = new FloatArrayWritable();
 		setValues(index, mElement, uElements, vElements);
 	}
 	
+	public InputWritable() {
+		index = new IntWritable();
+		mElement = new FloatWritable();
+		vElements = new FloatArrayWritable();
+		uElements = new FloatArrayWritable();
+	}
+	
 	public void setValues(int index, float mElement, Float[] uElements, Float[] vElements) {
-		this.index = new IntWritable(index);
+		this.index.set(index);
 		this.mElement = new FloatWritable(mElement);
 		FloatWritable[] vEls = new FloatWritable[10];
 		FloatWritable[] uEls = new FloatWritable[10];
@@ -32,9 +50,7 @@ public class InputWritable implements Writable{
 			vEls[i] = new FloatWritable(vElements[i]); 
 		}
 		
-		this.vElements = new FloatArrayWritable();
 		this.vElements.set(vEls);
-		this.uElements = new FloatArrayWritable();
 		this.uElements.set(uEls);
 	}
 
@@ -57,8 +73,8 @@ public class InputWritable implements Writable{
 	public Float[] getvElements() {
 		Float[] out = new Float[10];
 		int i = 0;
-		for(FloatWritable elem : (FloatWritable[]) vElements.get()) {
-			out[i] = elem.get();
+		for(Writable elem : vElements.get()) {
+			out[i] = ((FloatWritable) elem).get();
 			i++;
 		};
 		return out;
@@ -77,8 +93,8 @@ public class InputWritable implements Writable{
 	public Float[] getuElements() {
 		Float[] out = new Float[10];
 		int i = 0;
-		for(FloatWritable elem : (FloatWritable[]) uElements.get()) {
-			out[i] = elem.get();
+		for(Writable elem : uElements.get()) {
+			out[i] = ((FloatWritable) elem).get();
 			i++;
 		};
 		return out;
@@ -92,10 +108,6 @@ public class InputWritable implements Writable{
 		
 		this.uElements = new FloatArrayWritable();
 		this.uElements.set(uEls);
-	}
-
-	public void setuElements(FloatArrayWritable uElements) {
-		this.uElements = uElements;
 	}
 
 	public void readFields(DataInput in) throws IOException {

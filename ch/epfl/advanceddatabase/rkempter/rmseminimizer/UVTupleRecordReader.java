@@ -25,13 +25,17 @@ class UVTupleRecordReader implements RecordReader<IntWritable, MatrixInputValueW
 		lineValue = lineReader.createValue();
 	}
 	
+	/**
+	 * Read in values from U and V into MatrixInputValueWritable container
+	 */
 	public boolean next(IntWritable key, MatrixInputValueWritable tupleValue) throws IOException {
 		if(!lineReader.next(lineKey, lineValue)) {
 			return false;
 		}
 		
 		String stringToMatch = lineValue.toString().trim();
-		String regexpPattern = ".*<([UV]),([0-9]+),([0-9]+),(-?[0-9].[0-9]+)>.*";
+		// Use regexp pattern to extract the values
+		String regexpPattern = ".*<([UV]),([0-9]+),([0-9]+),(-?[0-9]+.[0-9]+)>.*";
 		Matcher matcher = Pattern.compile(regexpPattern).matcher(stringToMatch);
 
 		if(matcher.matches()) {
@@ -44,6 +48,7 @@ class UVTupleRecordReader implements RecordReader<IntWritable, MatrixInputValueW
 			float value;
 			String type = matcher.group(1).trim();
 			
+			// Initializes value and create record
 			try{
 				row = Integer.parseInt(matcher.group(2).trim());
 				column = Integer.parseInt(matcher.group(3).trim());

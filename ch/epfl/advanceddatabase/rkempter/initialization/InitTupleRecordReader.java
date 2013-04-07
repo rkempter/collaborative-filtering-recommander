@@ -10,7 +10,7 @@ import org.apache.hadoop.mapred.LineRecordReader;
 import org.apache.hadoop.mapred.RecordReader;
 
 
-class InitTupleRecordReader implements RecordReader<IntWritable, TupleValueWritable> {
+public class InitTupleRecordReader implements RecordReader<IntWritable, TupleValueWritable> {
 
   private LineRecordReader lineReader;
   private LongWritable lineKey;
@@ -39,6 +39,7 @@ class InitTupleRecordReader implements RecordReader<IntWritable, TupleValueWrita
     // try to parse floating point components of value
     int row, column;
     float grade;
+    // initialize the values
     try {
     	row = Integer.parseInt(pieces[0].trim());
     	column = Integer.parseInt(pieces[1].trim());
